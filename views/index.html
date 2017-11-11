@@ -64,6 +64,8 @@
 
     var name = '';
     var socket = io();
+    var notification = new Audio();
+        notification.src = 'http://facebook.design/public/sounds/Tab%201.mp3';
 
     var auth = get('.go', {
         onclick: function()
@@ -96,6 +98,8 @@
     socket.on('get message', function(msg){
         var messageBlock = renderMessage(msg);
         messageList.append(messageBlock);
+
+        notification.play();
     });
 
 
