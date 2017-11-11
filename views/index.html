@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Chat</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:100,200,300,400,500,600,700&amp;subset=cyrillic-ext" rel="stylesheet">
     <link rel="stylesheet" href="../public/styles/main.css">
@@ -34,17 +35,20 @@
 <script>
     get = function(selector, methods)
     {
-        var el = document.querySelector(selector);
-        if (el) {
+
+        if (typeof this[selector] === 'undefined') {
+            var el = document.querySelector(selector);
             el.set = function(value){ if (this.innerHTML) this.innerHTML = value; if (this.value) this.value = value; };
             el.val = function(){ return this.innerHTML || this.value; };
 
             for (var methodName in methods) {
                 el[methodName] = methods[methodName].bind(el);
             }
+
+            this[selector] = el;
         }
 
-        return el;
+        return this[selector];
     };
 
     renderMessage = function(msg, isMyMessage)
@@ -59,48 +63,83 @@
             '                    <div class="message__text">' + msg.message + '</div>\n' +
             '                </div>\n';
 
-        return message;
+        messageList.append(message);
+    };
+
+
+    function scrollDown()
+    {
+        document.documentElement.scrollTop = document.documentElement.scrollHeight;
+        document.body.scrollTop = document.body.scrollHeight;
+    }
+
+    init = function(){
+        window.socket = io();
+
+        socket.on('get message', function(msg){
+            renderMessage(msg);
+            scrollDown();
+            notification.play();
+        });
+
+        socket.on('last 100 messages', function(messages){
+            for (var i = 0; i < messages.length; i++) {
+                renderMessage(messages[i], messages[i].author === name);
+            }
+        });
     };
 
     var name = '';
-    var socket = io();
     var notification = new Audio();
         notification.src = 'http://facebook.design/public/sounds/Tab%201.mp3';
 
     var auth = get('.go', {
         onclick: function()
         {
-            name = get('.name').val();
-            get('.first_step').classList.add('hide');
+            var nameValue = get('.name').val().trim();
+            if (nameValue) {
+                name = get('.name').val();
+                get('.first_step').classList.add('hide');
+                init();
+            } else {
+
+            }
+
+
         }
     });
 
     var messageList = get('.message-list');
-
     var messageInput = get('.message-input');
+
+    messageInput.addEventListener('keydown', function(e){
+        if (e.keyCode === 13) {
+            send.onclick();
+        }
+    });
     var send = get('.send', {
         onclick: function()
         {
+            if (messageInput.val().trim() === '')
+            {
+                messageInput.set('');
+                return;
+            }
+
             var message = {
                 author: name,
                 message: messageInput.val()
             };
             socket.emit('send message', message);
 
-            var messageBlock = renderMessage(message, true);
-            messageList.append(messageBlock);
+            renderMessage(message, true);
 
+            scrollDown();
             messageInput.set('');
 
         }
     });
 
-    socket.on('get message', function(msg){
-        var messageBlock = renderMessage(msg);
-        messageList.append(messageBlock);
-
-        notification.play();
-    });
 
 
 
