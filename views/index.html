@@ -3,31 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <title>Chat</title>
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,600,700&amp;subset=cyrillic-ext" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:100,200,300,400,500,600,700&amp;subset=cyrillic-ext" rel="stylesheet">
     <link rel="stylesheet" href="../public/styles/main.css">
 </head>
 <body>
 
     <div class="first_step">
 
-        <h1>Hi! Enter Your name</h1>
+        <div class="block">
+            <h1>Hi! Enter Your name</h1>
+            <div><input type="text" class="name"></div>
 
-        <input type="text" class="name">
+            <button class="go">Go!</button>
+        </div>
 
+    </div>
+
+    <div class="chat">
+
+        <div class="message-list"></div>
+
+        <div class="send-message">
+            <input type="text" class="message-input" placeholder="Text message here..."><button class="send">Send</button>
+        </div>
     </div>
 
 </body>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
+    get = function(selector, methods)
+    {
+        var el = document.querySelector(selector);
+        if (el) {
+            el.set = function(value){ if (this.innerHTML) this.innerHTML = value; if (this.value) this.value = value; };
+            el.val = function(){ return this.innerHTML || this.value; };
+
+            for (var methodName in methods) {
+                el[methodName] = methods[methodName].bind(el);
+            }
+        }
+
+        return el;
+    };
+
+    renderMessage = function(msg, isMyMessage)
+    {
+        var message = document.createElement('div');
+            message.classList.add('message');
+
+        if (isMyMessage) { message.classList.add('my'); }
+
+        message.innerHTML = '<div class="message__wrapper">\n' +
+            '                    <div class="message__user">' + msg.author + '</div>\n' +
+            '                    <div class="message__text">' + msg.message + '</div>\n' +
+            '                </div>\n';
+
+        return message;
+    };
+
+    var name = '';
     var socket = io();
-    var count = document.querySelector('.count');
 
-    count.set = function(value){ this.innerHTML = value; };
+    var auth = get('.go', {
+        onclick: function()
+        {
+            name = get('.name').val();
+            get('.first_step').classList.add('hide');
+        }
+    });
 
-    socket.on('users_count', function(msg){
-        count.set(msg.count);
-    })
+    var messageList = get('.message-list');
+
+    var messageInput = get('.message-input');
+    var send = get('.send', {
+        onclick: function()
+        {
+            var message = {
+                author: name,
+                message: messageInput.val()
+            };
+            socket.emit('send message', message);
+
+            var messageBlock = renderMessage(message, true);
+            messageList.append(messageBlock);
+
+            messageInput.set('');
+
+        }
+    });
+
+    socket.on('get message', function(msg){
+        var messageBlock = renderMessage(msg);
+        messageList.append(messageBlock);
+    });
+
+
 
 </script>
 

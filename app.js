@@ -4,7 +4,11 @@ var http = require("http").Server(app);
 var path = require("path");
 var io = require('socket.io')(http);
 
-var usersCount = 0;
+var nowOnline = 0;
+
+var messages = [
+
+];
 
 app.use("/public", express.static(__dirname + "/public"));
 
@@ -13,14 +17,20 @@ app.get('/', function(req, res){
 });
 
 io.on('connection', function(socket){
-    ++usersCount;
+    ++nowOnline;
 
     socket.on('disconnect', function(){
-        --usersCount;
-        io.emit('users_count', {count: usersCount});
+        --nowOnline;
+        io.emit('now online', nowOnline);
     });
 
-    io.emit('users_count', {count: usersCount});
+    socket.on('send message', function(msg){
+        messages.push(msg);
+
+        socket.broadcast.emit('get message', msg);
+    });
+
+    io.emit('now online', nowOnline);
 });
 
 http.listen(3000, function(){
